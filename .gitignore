@@ -1,10 +1,7 @@
 .idea
 composer.lock
 *.log
-Baocms/Runtime/Cache
-Baocms/Runtime/Logs
-Baocms/Runtime/Data
-Baocms/Runtime/Temp
-Baocms/Runtime/~crons.php
-Baocms/Runtime/~runtime.php
+runtime/Cache
+runtime/Logs
+runtime/Temp
 *.zip

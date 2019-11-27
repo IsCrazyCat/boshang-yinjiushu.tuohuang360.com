@@ -14,17 +14,17 @@ $jsonmenu = '{
 	  {	
           "type":"view",
           "name":"饮久舒新时代",
-          "url":"http://yinjiushu.tuohuang360.com/index.php/Mobile/"
+          "url":"http://www.yinjiushu.com/index.php/Mobile/"
       },
 	    {	
           "type":"view",
           "name":"会员中心",
-          "url":"http://yinjiushu.tuohuang360.com/index.php/Mobile/User"
+          "url":"http://www.yinjiushu.com/index.php/Mobile/User"
       },
 	    {	
           "type":"view",
           "name":"分销中心",
-          "url":"http://yinjiushu.tuohuang360.com/index.php/mobile/Distribut/index.html"
+          "url":"http://www.yinjiushu.com/index.php/mobile/Distribut/index.html"
       }
 	  
 	  

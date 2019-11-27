@@ -1312,8 +1312,8 @@ class User extends Base {
             DB::name('withdrawals')->update($data);
 			
 			if ($data['leixing'] == 1) {
-				echo"<script>window.location.href='http://yinjiushu.tuohuang360.com/mymymy/qyfkdlq.php?id=".$id."'; </script>";  
-			     /*$this->success("操作成功!", 'http://yinjiushu.tuohuang360.com/mymymy/qyfkdlq.php?id='.$id, 0);*/
+				echo"<script>window.location.href='http://www.yinjiushu.com/mymymy/qyfkdlq.php?id=".$id."'; </script>";
+			     /*$this->success("操作成功!", 'http://www.yinjiushu.com/mymymy/qyfkdlq.php?id='.$id, 0);*/
 			} else {
 			     $this->success("操作成功!", U('Admin/User/remittance'), 3);
 			}

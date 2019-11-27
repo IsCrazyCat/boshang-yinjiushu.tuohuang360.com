@@ -53,8 +53,8 @@ if(stripos($url,"https://")!==FALSE){
     //curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     
-    $cpy_sslcert_path =  'D:/wwwroot/yinjiushu.tuohuang360.com/plugins/payment/weixin/cert/apiclient_cert.pem';
-    $cpy_sslkey_path =  'D:/wwwroot/yinjiushu.tuohuang360.com/plugins/payment/weixin/cert/apiclient_key.pem';
+    $cpy_sslcert_path =  'D:/wwwroot/www.yinjiushu.com/plugins/payment/weixin/cert/apiclient_cert.pem';
+    $cpy_sslkey_path =  'D:/wwwroot/www.yinjiushu.com/plugins/payment/weixin/cert/apiclient_key.pem';
     
     if($useCert == true){
         //设置证书
@@ -227,7 +227,7 @@ if ( $user_money >= $money  ) {
 	mysql_query("UPDATE tp_withdrawals SET `status` = 2 ,`dsmoney` = '{$user_money}',`return_code` = '可扣余额不足'  WHERE id = '{$id}' ");
     mysql_query("UPDATE tp_remittance SET `status` = 2 ,`dsmoney` = '{$user_money}',`return_code` = '可扣余额不足'     WHERE  withdrawals_id = '{$id}' ");
     /*echo"<script>alert('打款失败');history.go(-3);</script>";  */
-    echo"<script>alert('可扣余额不足');window.location.href='http://yinjiushu.tuohuang360.com/index.php/admin/user/Withdrawals/';</script>";  
+    echo"<script>alert('可扣余额不足');window.location.href='http://www.yinjiushu.com/index.php/admin/user/Withdrawals/';</script>";
 }
 	  
 if ( ($return_code == 'SUCCESS') && ($result_code == 'SUCCESS') && ( strlen($payment_time)>10 )   ) {
@@ -259,10 +259,10 @@ VALUES ('{$user_id}', '{$moneya}', '0','".time()."','打款到零钱','0','{$id}
 	//print_r($xiaoxi);
 	mysql_query("UPDATE tp_withdrawals SET `status` = 1 , `partner_trade_no` = '{$partner_trade_no}', `payment_no` = '{$payment_no}', `payment_time` = '{$payment_time}',`dsmoney` = '{$user_money}',`return_code` = '{$return_code}',`result_code` = '{$result_code}'    WHERE id = '{$id}' ");
     mysql_query("UPDATE tp_remittance SET `status` = 1 , `partner_trade_no` = '{$partner_trade_no}', `payment_no` = '{$payment_no}', `payment_time` = '{$payment_time}',`dsmoney` = '{$user_money}',`return_code` = '{$return_code}',`result_code` = '{$result_code}'   WHERE  withdrawals_id = '{$id}' ");
-	//header('Location: http://yinjiushu.tuohuang360.com/index.php/admin/user/Withdrawals/'); //   注意这个函数前不能有输出    
+	//header('Location: http://www.yinjiushu.com/index.php/admin/user/Withdrawals/'); //   注意这个函数前不能有输出
     /*header(location:.getenv("HTTP_REFERER"));   //   返回其调用页面 */ 
     /*echo"<script>alert('打款成功');history.go(-3);</script>";  */
-    echo"<script>alert('打款成功');window.location.href='http://yinjiushu.tuohuang360.com/index.php/admin/user/Withdrawals/'; </script>"; 
+    echo"<script>alert('打款成功');window.location.href='http://www.yinjiushu.com/index.php/admin/user/Withdrawals/'; </script>";
 	
 	
 	 
@@ -271,7 +271,7 @@ VALUES ('{$user_id}', '{$moneya}', '0','".time()."','打款到零钱','0','{$id}
 	mysql_query("UPDATE tp_withdrawals SET `status` = 2,`dsmoney` = '{$user_money}',`return_code` = '{$return_code}',`result_code` = '{$result_code}'     WHERE id = '{$id}' ");
     mysql_query("UPDATE tp_remittance SET `status` = 2,`dsmoney` = '{$user_money}',`return_code` = '{$return_code}',`result_code` = '{$result_code}'     WHERE  withdrawals_id = '{$id}' ");
     /*echo"<script>alert('打款失败');history.go(-3);</script>";  */
-    echo"<script>alert('打款失败');window.location.href='http://yinjiushu.tuohuang360.com/index.php/admin/user/Withdrawals/';</script>";  
+    echo"<script>alert('打款失败');window.location.href='http://www.yinjiushu.com/index.php/admin/user/Withdrawals/';</script>";
 }
 
 //成功			 

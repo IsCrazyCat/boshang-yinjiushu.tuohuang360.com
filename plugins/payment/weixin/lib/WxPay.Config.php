@@ -36,8 +36,8 @@ class WxPayConfig
 	 * @var path
 	 */
 
-	const SSLCERT_PATH = 'D:/wwwroot/yinjiushu.tuohuang360.com/web/plugins/payment/weixin/cert/apiclient_cert.pem';
-	const SSLKEY_PATH = 'D:/wwwroot/yinjiushu.tuohuang360.com/web/plugins/payment/weixin/cert/apiclient_key.pem';
+	const SSLCERT_PATH = 'D:/wwwroot/www.yinjiushu.com/web/plugins/payment/weixin/cert/apiclient_cert.pem';
+	const SSLKEY_PATH = 'D:/wwwroot/www.yinjiushu.com/web/plugins/payment/weixin/cert/apiclient_key.pem';
 
 	//=======【curl代理设置】===================================
 	/**

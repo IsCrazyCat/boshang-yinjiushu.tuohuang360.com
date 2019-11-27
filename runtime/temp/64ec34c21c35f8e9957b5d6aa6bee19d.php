@@ -345,7 +345,7 @@ function dosubmit(){
 	if(a.length == 0){
 		//layer.alert('请选择发货商品1', {icon: 2});  
 		
-		window.location.href="http://yinjiushu.tuohuang360.com/index.php?m=Admin&c=Order&a=index"
+		window.location.href="http://www.yinjiushu.com/index.php?m=Admin&c=Order&a=index"
 		
 		//alert('请选择发货商品');
 		return;
