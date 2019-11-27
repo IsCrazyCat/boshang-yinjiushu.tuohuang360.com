@@ -1,4 +1,4 @@
-<?php if (!defined('THINK_PATH')) exit(); /*a:2:{s:50:"./application/admin/view2/order\delivery_info.html";i:1571370959;s:44:"./application/admin/view2/public\layout.html";i:1524293403;}*/ ?>
+<?php if (!defined('THINK_PATH')) exit(); /*a:2:{s:50:"./application/admin/view2/order\delivery_info.html";i:1574827197;s:44:"./application/admin/view2/public\layout.html";i:1524293403;}*/ ?>
 <!doctype html>
 <html>
 <head>
@@ -204,7 +204,13 @@ a.green:hover { color: #FFF; background-color: #1BBC9D; border-color: #16A086; }
 		            <dt>下单时间：</dt>
 		            <dd><?php echo date('Y-m-d H:i',$order['add_time']); ?></dd>
 		            <dt>配送方式：</dt>
-		            <dd><?php echo $order['shipping_name']; ?></dd>
+		            <dd>
+                        <select name="shipping_name">
+                            <?php if(is_array($shippingList) || $shippingList instanceof \think\Collection || $shippingList instanceof \think\Paginator): if( count($shippingList)==0 ) : echo "" ;else: foreach($shippingList as $index=>$shipping): ?>
+                                <option value="<?php echo $shipping['code']; ?>"><?php echo $shipping['name']; ?></option>
+                            <?php endforeach; endif; else: echo "" ;endif; ?>
+                        </select>
+                    </dd>
 		          </dl>
 	              <dl>
 	              	<dt>配送费用：</dt>

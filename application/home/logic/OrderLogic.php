@@ -45,7 +45,7 @@ class OrderLogic extends Model
 
         // 0插入订单 order
         $address = M('UserAddress')->where("address_id", $address_id)->find();
-        $shipping = M('Plugin')->where("code", $shipping_code)->cache(true,TPSHOP_CACHE_TIME)->find();
+//        $shipping = M('Plugin')->where("code", $shipping_code)->cache(true,TPSHOP_CACHE_TIME)->find();
         $data = array(
             'order_sn'         => date('YmdHis').rand(1000,9999), // 订单编号
             'user_id'          =>$user_id, // 用户id
@@ -58,8 +58,8 @@ class OrderLogic extends Model
             'mobile'           =>$address['mobile'],//'手机',
             'zipcode'          =>$address['zipcode'],//'邮编',
             'email'            =>$address['email'],//'邮箱',
-            'shipping_code'    =>$shipping_code,//'物流编号',
-            'shipping_name'    =>$shipping['name'], //'物流名称',                为照顾新手开发者们能看懂代码，此处每个字段加于详细注释
+//            'shipping_code'    =>$shipping_code,//'物流编号',
+//            'shipping_name'    =>$shipping['name'], //'物流名称',                为照顾新手开发者们能看懂代码，此处每个字段加于详细注释
             'invoice_title'    =>$invoice_title, //'发票抬头',
             'goods_price'      =>$car_price['goodsFee'],//'商品价格',
             'shipping_price'   =>$car_price['postFee'],//'物流价格',

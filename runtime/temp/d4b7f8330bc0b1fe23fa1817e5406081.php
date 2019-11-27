@@ -1,4 +1,4 @@
-<?php if (!defined('THINK_PATH')) exit(); /*a:5:{s:38:"./template/mobile/new2/cart\cart2.html";i:1571887794;s:41:"./template/mobile/new2/public\header.html";i:1542371282;s:45:"./template/mobile/new2/public\header_nav.html";i:1533297512;s:45:"./template/mobile/new2/public\footer_nav.html";i:1542180611;s:43:"./template/mobile/new2/public\wx_share.html";i:1574825649;}*/ ?>
+<?php if (!defined('THINK_PATH')) exit(); /*a:5:{s:38:"./template/mobile/new2/cart\cart2.html";i:1574825742;s:41:"./template/mobile/new2/public\header.html";i:1542371282;s:45:"./template/mobile/new2/public\header_nav.html";i:1533297512;s:45:"./template/mobile/new2/public\footer_nav.html";i:1542180611;s:43:"./template/mobile/new2/public\wx_share.html";i:1574825649;}*/ ?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -123,23 +123,23 @@
     <!--支持配送,发票信息-s-->
     <div class="information_dr">
         <div class="maleri30">
-            <div class="invoice list7">
-                <div class="myorder p">
-                    <div class="content30">
-                        <a class="takeoutps" href="javascript:void(0)">
-                            <div class="order">
-                                <div class="fl">
-                                    <span>支持配送</span>
-                                </div>
-                                <div class="fr">
-                                    <span id="postname" style="line-height: 1.2rem;">不选择，则按默认配送方式</span>
-                                    <i class="Mright"></i>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                </div>
-            </div>
+<!--            <div class="invoice list7">-->
+<!--                <div class="myorder p">-->
+<!--                    <div class="content30">-->
+<!--                        <a class="takeoutps" href="javascript:void(0)">-->
+<!--                            <div class="order">-->
+<!--                                <div class="fl">-->
+<!--                                    <span>支持配送</span>-->
+<!--                                </div>-->
+<!--                                <div class="fr">-->
+<!--                                    <span id="postname" style="line-height: 1.2rem;">不选择，则按默认配送方式</span>-->
+<!--                                    <i class="Mright"></i>-->
+<!--                                </div>-->
+<!--                            </div>-->
+<!--                        </a>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
             <div class="invoice list7" style="display:none">
                 <div class="myorder p">
                     <div class="content30">

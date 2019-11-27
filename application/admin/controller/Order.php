@@ -777,6 +777,8 @@ class Order extends Base {
 		if($delivery_record){
 			$order['invoice_no'] = $delivery_record[count($delivery_record)-1]['invoice_no'];
 		}
+        $shippingList = M('Plugin')->where("`type` = 'shipping' and status = 1")->cache(true,TPSHOP_CACHE_TIME)->select();// 物流公司
+        $this->assign('shippingList',$shippingList);
 		$this->assign('order',$order);
 		$this->assign('orderGoods',$orderGoods);
 		$this->assign('delivery_record',$delivery_record);//发货记录

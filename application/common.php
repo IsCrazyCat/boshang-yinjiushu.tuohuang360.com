@@ -1233,14 +1233,14 @@ function calculate_price($user_id = 0, $order_goods, $shipping_code = '', $shipp
         $coupon_price = $coupon_result['result'];
     }
     // 处理物流
-    if ($shipping_price == 0) {
-        $freight_free = tpCache('shopping.freight_free'); // 全场满多少免运费
-        if ($freight_free > 0 && $goods_price >= $freight_free) {
-            $shipping_price = 0;
-        } else {
-            $shipping_price = $goodsLogic->getFreight($shipping_code, $province, $city, $district, $goods_weight);
-        }
-    }
+//    if ($shipping_price == 0) {
+//        $freight_free = tpCache('shopping.freight_free'); // 全场满多少免运费
+//        if ($freight_free > 0 && $goods_price >= $freight_free) {
+//            $shipping_price = 0;
+//        } else {
+//            $shipping_price = $goodsLogic->getFreight($shipping_code, $province, $city, $district, $goods_weight);
+//        }
+//    }
 
     if(($pay_points > 0 && $use_percent_point == 0) ||  ($pay_points >0 && $result['order_integral']==0)){
         return array('status' => -1, 'msg' => "该笔订单不能使用积分", 'result' => '积分'); // 返回结果状态

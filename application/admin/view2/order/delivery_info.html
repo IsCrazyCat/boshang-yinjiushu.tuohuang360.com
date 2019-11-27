@@ -90,7 +90,13 @@ a.green:hover { color: #FFF; background-color: #1BBC9D; border-color: #16A086; }
 		            <dt>下单时间：</dt>
 		            <dd>{$order.add_time|date='Y-m-d H:i',###}</dd>
 		            <dt>配送方式：</dt>
-		            <dd>{$order.shipping_name}</dd>
+		            <dd>
+                        <select name="shipping_code">
+                            <foreach name="shippingList" item="shipping" key="index">
+                                <option value="{$shipping.code}">{$shipping.name}</option>
+                            </foreach>
+                        </select>
+                    </dd>
 		          </dl>
 	              <dl>
 	              	<dt>配送费用：</dt>

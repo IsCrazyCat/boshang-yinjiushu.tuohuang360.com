@@ -173,7 +173,7 @@ class Cart extends MobileBase {
             exit(json_encode(array('status'=>-100,'msg'=>"登录超时请重新登录!",'result'=>null))); // 返回结果状态
         }
         $address_id = I("address_id/d"); //  收货地址id
-        $shipping_code =  I("shipping_code"); //  物流编号        
+//        $shipping_code =  I("shipping_code"); //  物流编号
         $invoice_title = I('invoice_title'); // 发票
         $coupon_id =  I("coupon_id/d"); //  优惠券id
         $couponCode =  I("couponCode"); //  优惠券代码
@@ -189,11 +189,11 @@ class Cart extends MobileBase {
             exit(json_encode(array('status'=>-2,'msg'=>'你的购物车没有选中商品','result'=>null))); // 返回结果状态
         }
         if(!$address_id) exit(json_encode(array('status'=>-3,'msg'=>'请先填写收货人信息','result'=>null))); // 返回结果状态
-        if(!$shipping_code) exit(json_encode(array('status'=>-4,'msg'=>'请选择物流信息','result'=>null))); // 返回结果状态
+//        if(!$shipping_code) exit(json_encode(array('status'=>-4,'msg'=>'请选择物流信息','result'=>null))); // 返回结果状态
 		
 		$address = M('UserAddress')->where("address_id", $address_id)->find();
 		$order_goods = M('cart')->where(['user_id'=>$this->user_id,'selected'=>1])->select();
-        $result = calculate_price($this->user_id,$order_goods,$shipping_code,0,$address['province'],$address['city'],$address['district'],$pay_points,$user_money,$coupon_id,$couponCode);
+        $result = calculate_price($this->user_id,$order_goods,'',0,$address['province'],$address['city'],$address['district'],$pay_points,$user_money,$coupon_id,$couponCode);
                 
 		if($result['status'] < 0)	
 			exit(json_encode($result));      	
@@ -236,7 +236,7 @@ class Cart extends MobileBase {
                 $coupon_id = M('CouponList')->where("code", $couponCode)->getField('id');
             }
             $orderLogic = new OrderLogic();
-            $result = $orderLogic->addOrder($this->user_id,$address_id,$shipping_code,$invoice_title,$coupon_id,$car_price,$user_note,$pay_name); // 添加订单
+            $result = $orderLogic->addOrder($this->user_id,$address_id,'',$invoice_title,$coupon_id,$car_price,$user_note,$pay_name); // 添加订单
             exit(json_encode($result));
         }
             $return_arr = array('status'=>1,'msg'=>'计算成功','result'=>$car_price); // 返回结果状态

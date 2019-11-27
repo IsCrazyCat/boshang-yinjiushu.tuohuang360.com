@@ -247,33 +247,33 @@ class DistributLogic //extends Model
 
          }
         //添加分销项 每一个会员下单，则均分100元给所有会员
-        $user_ids = M('users')->where("level", array('IN','2,3,4,5'))->select();;//获取所有会员用户
-         if(!(count($user_ids)>10000)){
-             //如果大于10000人暂时不分了 每人一分钱 不值当的。
-             //获取100平分金额 金额扩大100倍，避免小数的精度缺失,向下取整
-             $average_money = floor(10000 / count($user_ids))/100;
-             foreach ($user_ids as $key=>$val){
-                 $data['user_money'] = $val['user_id']+$average_money;
-                 $rebate_data = array(
-                     'user_id' =>$val['user_id'],
-                     'buy_user_id'=>$user['user_id'],
-                     'nickname'=>$user['nickname'],
-                     'order_sn' => $order['order_sn'],
-                     'order_id' => $order['order_id'],
-                     'goods_price' => $order['goods_price'],
-                     'money' => $average_money,
-                     'level' => -1,
-                     'create_time' => time(),
-                     'jxmc'  => '[购单奖励]其他会员购单奖励',
-                     'confirm_time'  => time(),
-                     'remark'  => '购单奖励',
-                     'status'  => 3,
-                 ); 
-                 M('rebate_log')->add($rebate_data);
-                 $row = M('users')->where(array('user_id'=>$val['user_id']))->save($data);
-                 accountLog($val['user_id'], $average_money, 0, "其他会员购单分成", $average_money , $order['order_id'],$order['order_sn']);
-             }
-         }
+//        $user_ids = M('users')->where("level", array('IN','2,3,4,5'))->select();;//获取所有会员用户
+//         if(!(count($user_ids)>10000)){
+//             //如果大于10000人暂时不分了 每人一分钱 不值当的。
+//             //获取100平分金额 金额扩大100倍，避免小数的精度缺失,向下取整
+//             $average_money = floor(10000 / count($user_ids))/100;
+//             foreach ($user_ids as $key=>$val){
+//                 $data['user_money'] = $val['user_money']+$average_money;
+//                 $rebate_data = array(
+//                     'user_id' =>$val['user_id'],
+//                     'buy_user_id'=>$user['user_id'],
+//                     'nickname'=>$user['nickname'],
+//                     'order_sn' => $order['order_sn'],
+//                     'order_id' => $order['order_id'],
+//                     'goods_price' => $order['goods_price'],
+//                     'money' => $average_money,
+//                     'level' => -1,
+//                     'create_time' => time(),
+//                     'jxmc'  => '[购单奖励]其他会员购单奖励',
+//                     'confirm_time'  => time(),
+//                     'remark'  => '购单奖励',
+//                     'status'  => 3,
+//                 );
+//                 M('rebate_log')->add($rebate_data);
+//                 $row = M('users')->where(array('user_id'=>$val['user_id']))->save($data);
+//                 accountLog($val['user_id'], $average_money, 0, "其他会员购单分成", $average_money , $order['order_id'],$order['order_sn']);
+//             }
+//         }
 
 
         M('order')->where("order_id", $order['order_id'])->save(array("is_distribut"=>1));  //修改订单为已经分成

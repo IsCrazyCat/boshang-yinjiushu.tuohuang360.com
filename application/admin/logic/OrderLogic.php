@@ -272,6 +272,7 @@ class OrderLogic extends Model
      * @param array $data  查询数量
      */
     public function deliveryHandle($data){
+
 		$order = $this->getOrderInfo($data['order_id']);
 		$orderGoods = $this->getOrderGoods($data['order_id']);
 		$selectgoods = $data['goods'];
@@ -287,8 +288,8 @@ class OrderLogic extends Model
 		$data['city'] = $order['city'];
 		$data['district'] = $order['district'];
 		$data['address'] = $order['address'];
-		$data['shipping_code'] = $order['shipping_code'];
-		$data['shipping_name'] = $order['shipping_name'];
+        $shipping = M('Plugin')->where("code", $data['shipping_code'])->cache(true,TPSHOP_CACHE_TIME)->find();
+		$data['shipping_name'] = $shipping['name'];
 		$data['shipping_price'] = $order['shipping_price'];
 		$data['create_time'] = time();
 		$did = M('delivery_doc')->add($data);
@@ -310,6 +311,8 @@ class OrderLogic extends Model
 		}else{
 			$updata['shipping_status'] = 2;
 		}
+        $updata['shipping_code'] = $data['shipping_code'];
+        $updata['shipping_name'] = $data['shipping_name'];
 		M('order')->where("order_id=".$data['order_id'])->save($updata);//改变订单状态
 		$s = $this->orderActionLog($order['order_id'],'delivery',$data['note']);//操作日志
 		
