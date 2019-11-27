@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>{$tpshop_config['shop_info_store_title']}</title>
+<link rel="stylesheet" href="__STATIC__/css/mystyle.css">
+<link rel="stylesheet" type="text/css" href="__STATIC__/css/iconfont.css"/>
+ 
+  
+</head>
+
+<body style="margin: 0px; padding: 0px; left: 0px; top: 0px;  "><!--background-color:#142333;-->
+<table width="100%" border="0" cellpadding="0" cellspacing="0" >
+  <tr>
+    <td colspan="3"><a href="http://yinjiushu.tuohuang360.com/Mobile/Goods/goodsInfo/id/1.html" target="_blank"><img src="__STATIC__/images/1.png" width="100%"></a></td>
+  </tr>
+</table>
+<!--底部-start--> 
+<footer >
+    <div class="flool1" style="font-size:.8rem;">
+        <ul style="font-size:.8rem;">
+            <if condition="!empty($_COOKIE['user_id'])">
+                <li><a href="{:U('Mobile/User/index')}"><?php echo getSubstr(urldecode($_COOKIE['uname']),0,8);?></a></li>
+                <li><a href="{:U('Mobile/User/logout')}">退出</a></li>
+            <else/>
+                <li><a href="{:U('Mobile/User/login')}">登录</a></li>
+                <li><a href="{:U('Mobile/User/reg')}">注册</a></li>
+            </if>
+            <!--<li><a href="">反馈</a></li>
+-->
+            <li class="comebackTop" style="font-size:.8rem;">回到顶部</li>
+        </ul>
+    </div>
+    
+    <div class="flool3" style="font-size:.6rem;">
+        <p>Copyright © 2018 饮久舒新时代商城</p>
+    </div>
+</footer>
+<!--底部-end--> 
+<!--底部导航-start--> 
+
+<include file="public/footer_nav"/> 
+<!--底部导航-end--> 

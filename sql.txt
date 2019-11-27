@@ -1,0 +1,34 @@
+
+DELETE FROM tp_account_log ;
+DELETE FROM tp_admin_log;
+DELETE FROM tp_rebate_log ;
+
+
+DELETE FROM tp_order ;
+DELETE FROM tp_order_action;
+DELETE FROM tp_order_goods ;
+
+UPDATE `tp_users`  SET `user_money` = '1000000.00',`frozen_money` = '0.00',`distribut_money` = '0.00', `pay_points` = '0.00', `level` = '1', `discount` = '1' ,`total_amount` = '0.00' where user_id =4 
+
+
+
+UPDATE `tp_users`  SET `user_money` = '0.00',`frozen_money` = '0.00',`distribut_money` = '0.00', `pay_points` = '0.00', `level` = '1', `discount` = '1' ,`total_amount` = '0.00' 
+
+
+DELETE FROM tp_withdrawals ;
+
+DELETE FROM tp_user_message ;
+
+DELETE FROM tp_remittance ;
+
+DELETE FROM tp_user_address;
+
+DELETE FROM tp_delivery_doc;
+
+UPDATE `tp_users`  SET `user_money` = '1000000.00',`frozen_money` = '0.00',`distribut_money` = '0.00', `pay_points` = '0.00', `level` = '1' , `sfffyj3` = '0', `sfffyj4` = '0', `yfcidstr3` = '0', `yfcidstr4` = '0',`total_amount` = '0.00'
+
+
+
+
+
+0未付款,1已付款, 2等待分成(已收货) 3已分成, 4已取消

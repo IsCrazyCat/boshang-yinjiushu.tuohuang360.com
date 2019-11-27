@@ -1,0 +1,1442 @@
+<?php
+/**
+ * tpshop
+ * ============================================================================
+ * 版权所有 2015-2027 聊城市饮久舒新时代科技有限公司，并保留所有权利。
+ * 网站地址: http://www.boshang3710.com
+ * ----------------------------------------------------------------------------
+ * 这不是一个自由软件！您只能在不用于商业目的的前提下对程序代码进行修改和使用 .
+ * 不允许对程序代码以任何形式任何目的的再发布。
+ * 采用TP5助手函数可实现单字母函数M D U等,也可db::name方式,可双向兼容
+ * ============================================================================
+ * Author: lihongshun      
+ * Date: 2015-09-09
+ */
+
+namespace app\admin\controller;
+use app\admin\logic\OrderLogic;
+use think\AjaxPage;
+use think\Page;
+use think\Verify;
+use think\Db;
+use app\admin\logic\UsersLogic;
+use think\Loader;
+
+class User extends Base {
+
+    public function index(){
+
+		$ptljxf = M('order')->master()->where(" pay_status=1 and order_status not in (3,5)")->sum('order_amount+user_money');  //累计获得佣金
+		$this->assign('ptljxf',$ptljxf);
+		
+		$ptljfyje = M('rebate_log')->where('status = 3')->sum('money');  //累计获得佣金
+		$this->assign('ptljfyje',$ptljfyje);
+		$ptdjyj = M('rebate_log')->where(" status > 0 and status < 3 ")->sum('money');  //冻结佣金
+		$this->assign('ptdjyj',$ptdjyj);
+		
+		$ptljkyye = M('users')->where("1 = 1 ")->sum('user_money');  //冻结佣金
+		$this->assign('ptljkyye',$ptljkyye);
+		
+        return $this->fetch();
+    }
+
+    /**
+     * 会员列表
+     */
+    public function ajaxindex(){
+        // 搜索条件
+
+//		I('nickname') ? $condition['nickname'] = I('nickname') : false;
+
+        $sort_order = I('order_by').' '.I('sort');
+        $model = M('users');
+
+        if(I('nickname')){
+            $cd="%".I('nickname')."%";
+              $count = $model->where('nickname','like',$cd)->count();
+        }else{
+            $count = $model->count();
+        }
+        $Page  = new AjaxPage($count,15);
+        //  搜索条件下 分页赋值
+//        foreach($condition as $key=>$val) {
+//            $Page->parameter[$key]   =   urlencode($val);
+//        }
+        if(I('nickname')){
+            $cd="%".I('nickname')."%";
+            $userList = $model->where('nickname','like',$cd)->order($sort_order)->limit($Page->firstRow.','.$Page->listRows)->select();
+        }else{
+            $userList = $model->order($sort_order)->limit($Page->firstRow.','.$Page->listRows)->select();
+        }
+
+		
+//		foreach ($userList as $key=>$val) {
+//			$userList[$key]['distribut_money'] = D('rebate_log')->where(array('user_id'=>$val['user_id'],'status'=>3))->sum('money');  //累计获得佣金
+//			$vv['distribut_money'] = $userList[$key]['distribut_money'];
+//			M("users")->where("user_id", $val['user_id'])->save($vv);	
+//		}
+                
+        $user_id_arr = get_arr_column($userList, 'user_id');
+        if(!empty($user_id_arr))
+        {
+            $first_leader = DB::query("select first_leader,count(1) as count  from __PREFIX__users where first_leader in(".  implode(',', $user_id_arr).")  group by first_leader");
+            $first_leader = convert_arr_key($first_leader,'first_leader');
+            
+            $second_leader = DB::query("select second_leader,count(1) as count  from __PREFIX__users where second_leader in(".  implode(',', $user_id_arr).")  group by second_leader");
+            $second_leader = convert_arr_key($second_leader,'second_leader');            
+            
+            $third_leader = DB::query("select third_leader,count(1) as count  from __PREFIX__users where third_leader in(".  implode(',', $user_id_arr).")  group by third_leader");
+            $third_leader = convert_arr_key($third_leader,'third_leader');            
+        }
+        $this->assign('first_leader',$first_leader);
+        $this->assign('second_leader',$second_leader);
+        $this->assign('third_leader',$third_leader);                                
+        $show = $Page->show();
+        //获取当前会员的所有上线id
+        $arrs_id="";
+        $tuans_id="";
+
+//        foreach ($userList as $val){
+//            $ben=M('users')->where(array('user_id'=>$val['user_id']))->find();
+//            while ($ben['first_leader']>0){//如果当前会员有上线
+//                $arrs_id=$ben['first_leader'].",".$arrs_id;
+//                $ben=M('users')->where(array('user_id'=>$ben['first_leader']))->find();
+//            }
+//            $arrs_id=substr($arrs_id,0,-1);
+//            Db::table('tp_users')->where('user_id',$val['user_id'])->update(['all_up_id' => $arrs_id]);
+//            $arrs_id="";
+//        }
+		
+		foreach ($userList as $k => $v) {
+            $userList[$k]['frozen_money'] = Db::name('rebate_log')->where("user_id = ".$v['user_id']." and status > 0 and status < 3")->sum('money'); 
+            $userList[$k]['distribut_money'] = Db::name('rebate_log')->where("user_id = ".$v['user_id']." and status = 3")->sum('money'); 
+			if ( $userList[$k]['frozen_money'] > 0 or  $userList[$k]['distribut_money'] > 0 ) { 
+				$data['frozen_money'] = $userList[$k]['frozen_money'];
+ 				$data['distribut_money'] = $userList[$k]['distribut_money'];
+            	$row = M('users')->where(array('user_id'=>$v['user_id']))->save($data);
+			}
+        }
+
+        //获取当前会员的所有上线id end
+        $this->assign('userList',$userList);
+        $this->assign('level',M('user_level')->getField('level_id,level_name'));
+        $this->assign('page',$show);// 赋值分页输出
+        $this->assign('pager',$Page);
+        return $this->fetch();
+    }
+    /**
+     * 代理申请列表
+     */
+    public function agencyAppList(){
+        return $this->fetch();
+    }
+    public function ajaxagency(){
+
+        // 搜索条件
+
+//      I('nickname') ? $condition['nickname'] = I('nickname') : false;
+
+        $sort_order ="id desc";
+        $model = M('dailishenqing');
+
+        if(I('nickname')){
+            $cd="%".I('nickname')."%";
+              $count = $model->where('nickname','like',$cd)->count();
+        }else{
+            $count = $model->count();
+        }
+        $Page  = new AjaxPage($count,10);
+        //  搜索条件下 分页赋值
+//        foreach($condition as $key=>$val) {
+//            $Page->parameter[$key]   =   urlencode($val);
+//        }
+        if(I('nickname')){
+            $cd="%".I('nickname')."%";
+            $userList = $model->where('nickname','like',$cd)->order($sort_order)->limit($Page->firstRow.','.$Page->listRows)->select();
+        }else{
+            $userList = $model->order($sort_order)->limit($Page->firstRow.','.$Page->listRows)->select();
+        }
+
+        
+
+                
+        $user_id_arr = get_arr_column($userList, 'user_id');
+        if(!empty($user_id_arr))
+        {
+            $first_leader = DB::query("select nickname,user_id  from __PREFIX__users where user_id in(".  implode(',', $user_id_arr).")  group by user_id");
+
+            $first_leader = convert_arr_key($first_leader,'user_id');
+
+        }
+        $this->assign('first_leader',$first_leader);
+
+        $show = $Page->show();
+        $this->assign('userList',$userList);
+        $this->assign('level',M('user_level')->getField('level_id,level_name'));
+        $this->assign('page',$show);// 赋值分页输出
+        $this->assign('pager',$Page);
+        return $this->fetch();
+    }
+    //删除 代理申请
+    public function ajaxagency_delete(){
+        $uid = I('id');
+
+        if($uid){
+            $row = M('dailishenqing')->where(array('user_id'=>$uid))->delete();
+            if($row !== false){
+                $this->ajaxReturn(array('status' => 1, 'msg' => '删除成功', 'data' => ''));
+            }else{
+                $this->ajaxReturn(array('status' => 0, 'msg' => '删除失败', 'data' => ''));
+            }
+        }else{
+            $this->ajaxReturn(array('status' => 0, 'msg' => '参数错误', 'data' => ''));
+        }
+    }
+    //审核代理申请
+    public function shenhedaili(){
+        $uid = I('id');
+
+        if($uid){
+            $data['status']=1;
+            $row = M('dailishenqing')->where(array('user_id'=>$uid))->save($data);
+            if($row !== false){
+                $this->ajaxReturn(array('status' => 1, 'msg' => '审核成功', 'data' => ''));
+            }else{
+                $this->ajaxReturn(array('status' => 0, 'msg' => '审核失败', 'data' => ''));
+            }
+        }else{
+            $this->ajaxReturn(array('status' => 0, 'msg' => '参数错误', 'data' => ''));
+        }
+    }
+//    public function cityc(){
+//      //  header('Content-Type: application/json; charset=utf-8');
+//        if(!empty($_POST['provincename']))
+//        {   $provincename = $_POST['provincename'];
+//            exit(json_encode(array('msg'=>$provincename)));
+//            die;
+//        }
+//        exit(json_encode(array('msg'=>12321321321321)));
+//    }
+    /**
+     * 会员详细信息查看
+     */
+    public function detail(){
+        $uid = I('get.id');
+        $user = D('users')->where(array('user_id'=>$uid))->find();
+        if(!$user)
+            exit($this->error('会员不存在'));
+			
+			
+        if(IS_POST){
+            //  会员信息编辑
+            $password = I('post.password');
+            $password2 = I('post.password2');
+            if($password != '' && $password != $password2){
+                exit($this->error('两次输入密码不同'));
+            }
+            if($password == '' && $password2 == ''){
+                unset($_POST['password']);
+            }else{
+                $_POST['password'] = encrypt($_POST['password']);
+            }
+
+            if(!empty($_POST['email']))
+            {   $email = trim($_POST['email']);
+                $c = M('users')->where("user_id != $uid and email = '$email'")->count();
+                $c && exit($this->error('邮箱不得和已有用户重复'));
+            }            
+            
+            if(!empty($_POST['mobile']))
+            {   $mobile = trim($_POST['mobile']);
+                $c = M('users')->where("user_id != $uid and mobile = '$mobile'")->count();
+                $c && exit($this->error('手机号不得和已有用户重复'));
+            }
+			
+			if  ( (int)$_POST['level'] >= 1 ) {
+				$level_info = M('user_level')->where("level_id", (int)$_POST['level'] )->find();
+				$_POST['discount'] = $level_info['discount']/100;
+			}
+			
+			
+            /*代理模块操作  邱洪阳 20190529*/
+//            if($_POST['daili']==0){//没有选择代理
+//                $_POST['sheng_id']=0;
+//                $_POST['shi_id']=0;
+//				$_POST['xian_id']=0;
+//                $_POST['dljb']=0;
+//            }else{
+				$_POST['dljb']=$_POST['daili'];
+				if ( (int)$_POST['dljb'] > 0 ) {
+					if ( $_POST['level'] != 4  ) {
+						exit($this->error('只有公司合伙创始人,才能成为代理！'));	
+					}
+				}
+                //如果选择的是省代
+/*                if($_POST['daili']==1){
+                    if(empty($_POST['sheng_id'])){
+                        exit($this->error('请选择代理省代地区！'));
+                    }
+					$vv1 = D('users')->where(array('sheng_id'=>$_POST['sheng_id'],'user_id'=>array('neq',$uid)))->find();
+					if($vv1){
+						exit($this->error('所选省已存在其他省代！'));
+					} else {
+						$_POST['sheng_id'] = (int)$_POST['sheng_id'];	
+					}
+                }
+                if($_POST['daili']==9){//如果选择的是市代
+                    if(empty($_POST['sheng_id'])){
+                        exit($this->error('请选择省代地区！'));
+                    }
+                    if(empty($_POST['shi_id'])){
+                        exit($this->error('请选择市代地区！'));
+                    }
+                    $vv2 = D('users')->where(array('shi_id'=>$_POST['shi_id'],'user_id'=>array('neq',$uid)))->find();
+                    if($vv2) {
+                        exit($this->error('所选市份已存在其他市代！'));
+					}else{
+						$_POST['sheng_id'] = (int)$_POST['sheng_id'];	
+						$_POST['shi_id'] = (int)$_POST['shi_id'];	
+					}
+                }*/
+				
+                if($_POST['daili']==3){//如果选择的是市代
+//                    if(empty($_POST['xian_id'])){
+//                        exit($this->error('请选择区县区域！'));
+//                    }
+
+//                    $vv3 = D('users')->where(array('xian_id'=>$_POST['xian_id'],'user_id'=>array('neq',$uid)))->find();
+//                    if ($vv3) {
+//                        exit($this->error('所选区县已存在其他县代！'));
+//					} else {
+//						$_POST['sheng_id'] = (int)$_POST['sheng_id'];	
+//						$_POST['shi_id'] = (int)$_POST['shi_id'];	
+//						$_POST['xian_id'] = (int)$_POST['xian_id'];	
+//					}
+					
+					$xian_id = $_POST['xian_id'];	
+					$myadd['uid'] = $uid;	
+					if ( (int)$xian_id > 0 ) {
+						$myrow = M('region')->where(array('id'=>$xian_id))->save($myadd);
+						if($myrow)
+							
+							$this->success('增加成功','/index.php/Admin/user/detail/id/'.$uid);exit;
+					}
+					
+					$mydeldata = $_POST['mydel'];	
+					
+					if ($mydeldata) {
+							
+					 
+						foreach ((array)$mydeldata as $v)
+						{
+							if ( (int)$v > 0 ) {
+								$mydel['uid'] = 0;
+								$myrow = M('region')->where(array('id'=>$v))->save($mydel);
+							}
+						}
+					
+						$this->success('删除成功','/index.php/Admin/user/detail/id/'.$uid);exit;
+					}
+					
+					
+                }
+//            }
+
+            $row = M('users')->where(array('user_id'=>$uid))->save($_POST);
+            if($row)
+                exit($this->success('修改成功'));
+            //exit($this->error('未作内容修改或修改失败'));
+            exit($this->success('修改成功'));
+        }
+        
+        $user['first_lower'] = M('users')->where("first_leader = {$user['user_id']}")->count();
+        $user['second_lower'] = M('users')->where("second_leader = {$user['user_id']}")->count();
+        $user['third_lower'] = M('users')->where("third_leader = {$user['user_id']}")->count();
+		
+//      $user['distribut_money'] = D('rebate_log')->where(array('user_id'=>$user['user_id'],'status'=>3))->sum('money');  //累计获得佣金
+//		$vv['distribut_money'] = $user['distribut_money'];
+//		M("users")->where("user_id", $user['user_id'])->save($vv);	
+
+
+		$region_model = M('region');
+        $p = $region_model->where(array('parent_id' => 0, 'level' => 1))->select();
+        $c = $region_model->where(array('parent_id' => 0, 'level' => 2))->select();
+        $d = $region_model->where(array('parent_id' => 0, 'level' => 3))->select();
+        $this->assign('sheng', $p);
+        $this->assign('shi', $c);
+        $this->assign('xian', $d);
+
+		$regionlists =  M('region')->where(array('uid'=>$uid,'level'=>3))->order('id desc')->select();
+        $this->assign('regionlists',$regionlists);
+		
+        $this->assign('user',$user);
+
+        return $this->fetch();
+    }
+    
+    public function add_user(){
+    	if(IS_POST){
+    		$data = I('post.');
+			
+			$data['username'] = $data['nickname'];
+            $data['chushengriqi'] = $data['chushengriqi'];
+			$data['is_distribut']  = 1;//默认是分销商
+			$data['mobile_validated']  = 1;//手机已验证
+			
+			
+			$data['user_money'] = '0.00';//给本人加5元可用余额
+			
+			$usermobile = $data['usermobile'];//隐传值
+			
+			$tjr_shibai = 1;
+			
+			$tjr1_user_id = 0 ;
+			$tjr2_user_id = 0 ;
+			$tjr3_user_id = 0 ;
+			if ( strlen($data['first_leader']) > 3 ) {//如果有 推荐人手机号
+				$tjr1_users = M('users')->where("mobile", $data['first_leader'])->find();
+				if($tjr1_users){
+					$tjr1_user_id = (int)$tjr1_users['user_id'];
+					if ( (int)$tjr1_user_id == 0 ) {
+						$this->error('没有找到推荐人手机号,',U('User/index'));
+						$tjr_shibai = 2;
+					}
+					if ( (int)$tjr1_user_id > 0 ) {
+						$data['first_leader'] = $tjr1_user_id; 
+					} 
+				}
+			} else {
+				//$tjr1_user_id = 1;
+				//$data['first_leader'] = 1;
+				$tjr1_user_id = 0;
+				$data['first_leader'] = 0;
+			}	
+			if ( (int)$tjr1_user_id > 0 ) {		
+				$tjr2_users = M('users')->where("user_id", $tjr1_user_id)->find();
+				if($tjr2_users){
+					
+					/*M('users')->where(array('user_id' => $tjr1_user_id))->setInc('frozen_money','0.00'); //给推荐人加销售佣金
+					$account_log = array(
+						'user_id'       => $tjr1_user_id,
+						'user_money'    => '0.00',
+						'pay_points'    => '0',
+						'change_time'   => time(),
+						'desc'   => '销售佣金（来自于）',
+						'distribut_money' => '0.00',
+						'order_id' => '0',
+						'order_sn' => '',
+						'address_id' => 0,
+						'total_amount' => '0',
+					);
+					M('account_log')->add($account_log);*/
+					
+					
+					$tjr2_user_id = (int)$tjr2_users['first_leader'];
+					if ( (int)$tjr2_user_id > 0 ) {
+						$tjr3_users = M('users')->where("user_id", $tjr2_user_id)->find();
+						if($tjr3_users){
+							$tjr3_user_id = (int)$tjr3_users['first_leader'];
+						}
+					}
+				}
+				
+				$data['second_leader'] = $tjr2_user_id; 
+				$data['third_leader'] = $tjr3_user_id; 
+				
+				M('users')->where(array('user_id' => $tjr1_user_id))->setInc('underling_number');
+				M('users')->where(array('user_id' => $tjr2_user_id))->setInc('underling_number');
+				M('users')->where(array('user_id' => $tjr3_user_id))->setInc('underling_number');
+			}
+			
+			    //$data['user_money'] = $data['my_user_money'];//充值余额
+				
+			if ( $tjr_shibai ==  2 ) {
+				$this->error('没有找到推荐人手机号',U('User/index'));	
+			} else {
+				$user_obj = new UsersLogic();
+				$res = $user_obj->addUser($data);
+				if($res['status'] == 1){
+					//if ( $data['level'] == 2 ) {
+						//$data['user_money'] = '10000.00';//增加股东会员的 余额 10000元
+						accountLog($res['user_id'], $data['my_user_money'], 0,"平台充值",0);  	
+					//}
+					if  ( strlen($usermobile) > 1  ) {
+						$this->success('添加成功','/index.php/Admin/User/my_account_edit?usermobile='.$usermobile);exit;
+					} else {
+						$this->success('添加成功',U('User/index'));exit;
+					}
+					
+				}else{
+					$this->error('添加失败,'.$res['msg'],U('User/index'));
+				}
+			}
+    	}
+    	return $this->fetch();
+    }
+    
+    public function export_user(){
+    	$strTable ='<table width="500" border="1">';
+    	$strTable .= '<tr>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;width:120px;">会员ID</td>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="100">会员昵称</td>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="*">会员等级</td>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="*">手机号</td>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="*">邮箱</td>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="*">注册时间</td>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="*">最后登陆</td>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="*">余额</td>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="*">积分</td>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="*">累计消费</td>';
+    	$strTable .= '</tr>';
+    	$count = M('users')->count();
+    	$p = ceil($count/5000);
+    	for($i=0;$i<$p;$i++){
+    		$start = $i*5000;
+    		$end = ($i+1)*5000;
+    		$userList = M('users')->order('user_id')->limit($start.','.$end)->select();
+    		if(is_array($userList)){
+    			foreach($userList as $k=>$val){
+    				$strTable .= '<tr>';
+    				$strTable .= '<td style="text-align:center;font-size:12px;">'.$val['user_id'].'</td>';
+    				$strTable .= '<td style="text-align:left;font-size:12px;">'.$val['nickname'].' </td>';
+    				$strTable .= '<td style="text-align:left;font-size:12px;">'.$val['level'].'</td>';
+    				$strTable .= '<td style="text-align:left;font-size:12px;">'.$val['mobile'].'</td>';
+    				$strTable .= '<td style="text-align:left;font-size:12px;">'.$val['email'].'</td>';
+    				$strTable .= '<td style="text-align:left;font-size:12px;">'.date('Y-m-d H:i',$val['reg_time']).'</td>';
+    				$strTable .= '<td style="text-align:left;font-size:12px;">'.date('Y-m-d H:i',$val['last_login']).'</td>';
+    				$strTable .= '<td style="text-align:left;font-size:12px;">'.$val['user_money'].'</td>';
+    				$strTable .= '<td style="text-align:left;font-size:12px;">'.$val['pay_points'].' </td>';
+    				$strTable .= '<td style="text-align:left;font-size:12px;">'.$val['total_amount'].' </td>';
+    				$strTable .= '</tr>';
+    			}
+    			unset($userList);
+    		}
+    	}
+    	$strTable .='</table>';
+    	downloadExcel($strTable,'users_'.$i);
+    	exit();
+    }
+
+    /**
+     * 用户收货地址查看
+     */
+    public function address(){
+        $uid = I('get.id');
+        $lists = D('user_address')->where(array('user_id'=>$uid))->select();
+        $regionList = get_region_list();
+        $this->assign('regionList',$regionList);
+        $this->assign('lists',$lists);
+        return $this->fetch();
+    }
+
+    /**
+     * 删除会员
+     */
+    public function delete(){
+        $uid = I('get.id');
+        $row = M('users')->where(array('user_id'=>$uid))->delete();
+        if($row){
+            $this->success('成功删除会员');
+        }else{
+            $this->error('操作失败');
+        }
+    }
+    /**
+     * 删除会员
+     */
+    public function ajax_delete(){
+        $uid = I('id');
+        if($uid){
+            $row = M('users')->where(array('user_id'=>$uid))->delete();
+            if($row !== false){
+                $this->ajaxReturn(array('status' => 1, 'msg' => '删除成功', 'data' => ''));
+            }else{
+                $this->ajaxReturn(array('status' => 0, 'msg' => '删除失败', 'data' => ''));
+            }
+        }else{
+            $this->ajaxReturn(array('status' => 0, 'msg' => '参数错误', 'data' => ''));
+        }
+    }
+
+    /**
+     * 账户资金记录
+     */
+    public function account_log(){
+        $user_id = I('get.id');
+        //获取类型
+        $type = I('get.type');
+        //获取记录总数
+        $count = M('account_log')->where(array('user_id'=>$user_id))->count();
+        $page = new Page($count);
+        $lists  = M('account_log')->where(array('user_id'=>$user_id))->order('change_time desc')->limit($page->firstRow.','.$page->listRows)->select();
+
+        $this->assign('user_id',$user_id);
+        $this->assign('page',$page->show());
+        $this->assign('lists',$lists);
+        return $this->fetch();
+    }
+	
+    /**
+     * 账户资金记录
+     */
+    public function my_account_log(){
+        $map['pay_points']  = array('gt',0);  
+        $count = M('account_log')->where('1=1')->count();
+        $page = new Page($count);
+        $lists  = M('account_log')->where('1=1')->order('change_time desc')->limit($page->firstRow.','.$page->listRows)->select();
+
+        //$this->assign('user_id',$user_id);
+        $this->assign('page',$page->show());
+        $this->assign('lists',$lists);
+        return $this->fetch();
+    }
+	
+
+    /**
+     * 账户资金调节
+     */
+    public function account_edit(){
+        $order_info = I('get.');
+        $user_id = $order_info['user_id'];
+        if(!$user_id > 0)
+            $this->error("参数有误");
+        $user = M('users')->field('user_id,user_money,frozen_money,pay_points,is_lock')->where('user_id',$user_id)->find();
+        if(IS_POST){
+            $return_info = I('post.');
+            $return_id   = $return_info['return_id'];
+            if(!$return_info['desc'])
+                $this->error("请填写操作说明");
+            //加减用户资金
+            $m_op_type = I('post.money_act_type');
+            $user_money = I('post.user_money/f');
+            $user_money =  $m_op_type ? $user_money : 0-$user_money;
+            //加减用户积分
+            $p_op_type = I('post.point_act_type');
+            $pay_points = I('post.pay_points/d');
+            $pay_points =  $p_op_type ? $pay_points : 0-$pay_points;
+            //加减冻结资金
+            $f_op_type = I('post.frozen_act_type');
+            $revision_frozen_money = I('post.frozen_money/f');
+            if( $revision_frozen_money != 0){    //有加减冻结资金的时候
+                $frozen_money =  $f_op_type ? $revision_frozen_money : 0-$revision_frozen_money;
+                $frozen_money = $user['frozen_money']+$frozen_money;    //计算用户被冻结的资金
+                if($f_op_type==1 and $revision_frozen_money > $user['user_money']){ $this->error("用户剩余资金不足！！");}
+                if($f_op_type==0 and $revision_frozen_money > $user['frozen_money']){$this->error("冻结的资金不足！！");}
+                $user_money = $f_op_type ? 0-$revision_frozen_money : $revision_frozen_money ;    //计算用户剩余资金
+                M('users')->where('user_id',$user_id)->update(['frozen_money' => $frozen_money]);
+            }
+
+            if(accountLog($user_id,$user_money,$pay_points,$return_info['desc'],0,$return_info['order_id'],$return_info['order_sn'])){
+                if($return_id>0){  //有退货id,是订单退款，要更新退货单状态
+                    $orderLogic = new OrderLogic();
+                    $res = $orderLogic->alterReturnGoodsStatus($return_id,$return_info['order_id'],3);
+                    $orderLogic->closeOrderByReturn($return_info['order_id']);
+					 //$this->error(print_r($res));
+                    if(print_r($res))
+                        $this->success("操作成功", U("Admin/order/return_info", array('id' => $return_id)));
+                   // $this->error("操作失败1");
+                }
+                $this->success("操作成功",U("Admin/User/account_log",array('id'=>$user_id)));
+            }else{
+                $this->error("操作失败2");
+            }
+            exit;
+        }
+        if($order_info['return_id']){  //有退货id,是订单退款
+            $return_info = M('return_goods')->field('order_sn,order_id,goods_id,spec_key')->where('id',$order_info['return_id'])->find(); //查找退货商品信息
+            $order_info=array_merge($return_info,$order_info);  //合并数值
+            $order_goods= M('order_goods')->where(array_splice($return_info ,1))->find();  //去掉order_sn 后作为条件去查找
+            $order_info['user_money']  =$order_goods['member_goods_price']*$order_goods['goods_num'];  //计算默认退款
+        }
+        $this->assign('user_id',$user_id);
+        $this->assign('user',$user);
+        $this->assign('order_info',$order_info);
+        return $this->fetch();
+    }
+	
+	
+	
+  /**
+     * 账户资金调节
+     */
+    public function my_account_edit(){
+        $order_info = I('get.');
+        
+        if(IS_POST){
+			
+            $smsLogic = new \app\common\logic\SmsLogic;
+    
+			
+            $return_info = I('post.');
+            $return_id   = $return_info['return_id'];
+            if(!$return_info['user_mobile'])
+                $this->error("请填写手机号");
+//          if(!$return_info['duoshaoyuan'])
+//                $this->error("请填写消费额");
+            //if(!$return_info['pay_points'])
+			//$this->error("请填写积分");
+				
+			$user_id = 0;
+			$user = M('users')->where("mobile", $return_info['user_mobile'])->find();
+			if($user){
+				$user_id = (int)$user['user_id'];
+				if ( (int)$user_id == 0 ) {
+					$this->error("没有找到手机号");
+				}
+    		}
+			
+			
+			$userid = $return_info['userid'];//消费人id
+			$tuijianrenid = $return_info['tuijianrenid'];//推荐人id
+			
+//			$consignee = $return_info['consignee'];//收货人姓名
+//			$province = $return_info['province'];//省id
+//			$city = $return_info['city'];//市id
+//			$district = $return_info['district'];//县id
+//			$twon = $return_info['twon'];//乡镇id
+//			$address = $return_info['address'];//详细地址
+//			
+//			$address_id = 0 ;
+//			$myaddressdata = M('user_address')->where(array('user_id'=>$user_id,'province'=>$province,'city'=>$city,'district'=>$district,'address'=>$address,'consignee'=>$consignee))->find();
+//			if( (int)$myaddressdata['address_id'] > 0 ) {
+//				$address_id = $myaddressdata['address_id'];
+//			} else {
+//				//插入地址
+//				$post['user_id']=$user_id;
+//				$post['consignee']=$consignee;
+//				$post['province']=(int)$province;
+//				$post['city']=(int)$city;
+//				$post['district']=(int)$district;
+//				$post['twon']=(int)$twon;
+//				$post['address']=$address;
+//				$post['mobile']=$return_info['user_mobile'];
+//				$address_id = M('user_address')->add($post);
+//			}			
+			
+			$jiaoyizongjia = $return_info['jiaoyizongjia'];//交易总价
+			$zongtjryj = $return_info['zongtjryj'];//一级佣金
+			$zongssjyj = $return_info['zongssjyj'];//二级佣金
+			$zongsssjyj = $return_info['zongsssjyj'];//三级佣金
+			
+			
+			//加减用户资金
+            $m_op_type = 0;//减少余额
+            $user_money = I('post.user_money/f');
+            $user_money =  $m_op_type ? $jiaoyizongjia : 0-$jiaoyizongjia;
+			
+			
+//			if (  $return_info['jiaoyizongjia'] > $user['user_money']  ) {
+//				$this->error("余额不足！");
+//			} else {
+//				$my_user_money = $user['user_money']-$user_money;    //计算用户被冻结的资金
+//				M('users')->where('user_id',$user_id)->update(['user_money' => $my_user_money]);			
+//			}
+			
+			
+            
+			$shangpinmingarr = explode("</br>", implode("</br>",$return_info['shangpinming']) );
+			$chengjiaojiaarr = explode("</br>", implode("</br>",$return_info['chengjiaojia']) );
+			$tjryjarr = explode("</br>", implode("</br>",$return_info['tjryj']) );
+			$desc = '购买：';
+			//第一种遍历方式,只适用于索引数组。PHP数组在没有指明key的情况下，默认是索引数组  
+			for ($i = 0; $i < sizeof($shangpinmingarr); $i++) {  
+				if ( strlen($shangpinmingarr[$i]) > 1 ) {
+					//所购商品入库
+					$desc.= trim($shangpinmingarr[$i])." ；";
+				} else {
+					continue;
+				} 
+			}
+			
+			
+            //向 account_log 表写数据  
+            if(my_accountLog($user_id,0,0,$desc,0,0,'',$address_id,$jiaoyizongjia)){
+/*会员分佣开始*/
+
+							/* 发送短信_给消费本人 */
+							
+							//普通用户消费, 发送短信
+							
+									$res = checkEnableSendSms("3");
+									$sender = $user['mobile'];
+									if($res && $res['status'] ==1 && !empty($sender)  ){
+										$params['user_name'] = $user['username'];
+										$params['duoshaoyuan'] =  $jiaoyizongjia;
+										$params['mobile'] = $user['mobile'];
+										$params = array('user_name'=>$user['username'] , 'duoshaoyuan'=>$jiaoyizongjia , 'mobile' => $user['mobile'] );
+										$resp = sendSms("3", $sender, $params, $user['user_id'] );
+									}
+									
+							/* 发送短信_给消费本人 */
+									
+									
+									
+										 // 一级 分销商赚 的钱. 小于一分钱的 不存储
+										 if($user['first_leader'] > 0 && $zongtjryj > 0.01)
+										 {
+											$data = array(             
+												'user_id' =>$user['first_leader'],
+												'buy_user_id'=>$user['user_id'],
+												'nickname'=>$user['nickname'],
+												'goods_price' => $jiaoyizongjia,
+												'money' => $zongtjryj,
+												'level' => 1,
+												'status' => 3,//已分成
+												'shifouhuiyuanfenyong' => 1,
+												'create_time' => time(), 
+												           
+											);                  
+											M('rebate_log')->add($data); //向 rebate_log  分成日志 表 写入数据
+											
+
+											my_accountLog($user['first_leader'], $zongtjryj, 0,"您的推荐 ".$user['nickname']." 消费购物产生的分佣",$zongtjryj,0,'',0,0);      
+											/* 发送短信_一级代理 */
+											$user_1 = M('users')->where("user_id", $user['first_leader'])->find();
+											if($user_1){
+
+												$res = checkEnableSendSms("10");
+												$sender = $user_1['mobile'];
+												//if($res && $res['status'] ==1 && !empty($sender)){
+													//if ($sender != '15314170988') {  
+													    $params['user_name'] = $user['username'];
+														$params['sms_sign'] =  '饮久舒新时代';
+														$params['duoshaoyongjin'] = $zongtjryj;
+														$params = array('user_name'=>$user['nickname'] ,'sms_sign'=>'饮久舒新时代','duoshaoyongjin'=>$zongtjryj  );
+														$resp = sendSms("10", $sender, $params, $user['first_leader'] );
+													//}
+												//}
+											}
+											/* 发送短信_一级代理 */
+											
+										 }
+										 
+										 
+										 
+										 
+										  // 二级 分销商赚 的钱.
+											 if($user['second_leader'] > 0 && $zongssjyj > 0.01)
+											 {         
+												$data = array(
+													'user_id' =>$user['second_leader'],
+													'buy_user_id'=>$user['user_id'],
+													'nickname'=>$user['nickname'],
+													'goods_price' => $jiaoyizongjia,
+													'money' => $zongssjyj,
+													'level' => 2,
+													'status' => 3,//已分成
+													'shifouhuiyuanfenyong' => 1,
+													'create_time' => time(),             
+												);                  
+												M('rebate_log')->add($data);
+												my_accountLog($user['second_leader'], $zongssjyj, 0,"您的二级代理 ".$user['nickname']." 消费购物产生的分佣",$zongssjyj,0,'',0,0);      
+
+												/* 发送短信_二级代理 */
+												$user_2 = M('users')->where("user_id", $user['second_leader'])->find();
+												if($user_2){
+													
+													$res = checkEnableSendSms("10");
+													$sender = $user_2['mobile'];
+													//if($res && $res['status'] ==1 && !empty($sender)){
+														//if ($sender != '15314170988') {  
+															$params['user_name'] = $user['username'];
+															$params['sms_sign'] =  '饮久舒新时代';
+															$params['duoshaoyongjin'] = $zongssjyj;
+															$params = array('user_name'=>$user['nickname'] ,'sms_sign'=>'饮久舒新时代','duoshaoyongjin'=>$zongssjyj  );
+															$resp = sendSms("10", $sender, $params, $user['second_leader'] );
+														//}
+													//}
+													
+													
+												}
+												/* 发送短信_二级代理 */
+											 }
+											 
+											 
+																						
+				   
+				 
+				 
+/*会员分佣结束*/	
+                //$this->success("操作成功",U("Admin/User/account_log",array('id'=>$user_id)));
+				
+                $this->success("操作成功",U("Admin/User/my_account_log")); //账户金额记录列表
+				
+            }else{
+                $this->error("操作失败");
+            }
+            exit;
+        }
+		
+		$province = M('region')->where(array('parent_id'=>0,'level'=> 1))->field('id,name')->select();
+    	$this->assign('province',$province);
+		
+		$where = ' 1 = 1 '; // 搜索条件 
+		$goodsList = M('Goods')->where($where)->order('convert(goods_name using gb2312) asc')->select();
+    	$this->assign('goodsList',$goodsList);
+		
+		
+		$mygoodsList='<option  value="0">选择商品</option>';
+		foreach($goodsList as $k=>$val){ 
+			$mygoodsList.= '<option  value="'. $val["goods_id"] .'|'. $val["shop_price"] .'">' . $val["goods_name"] . '</option>';
+		} 
+    	$this->assign('mygoodsList',$mygoodsList);
+		
+
+        return $this->fetch();
+    }
+    	
+    
+    public function recharge(){
+    	$timegap = I('timegap');
+    	$nickname = I('nickname');
+    	$map = array();
+    	if($timegap){
+    		$gap = explode(' - ', $timegap);
+    		$begin = $gap[0];
+    		$end = $gap[1];
+    		$map['ctime'] = array('between',array(strtotime($begin),strtotime($end)));
+    	}
+    	if($nickname){
+    		$map['nickname'] = array('like',"%$nickname%");
+    	}  	
+    	$count = M('recharge')->where($map)->count();
+    	$page = new Page($count);
+    	$lists  = M('recharge')->where($map)->order('ctime desc')->limit($page->firstRow.','.$page->listRows)->select();
+    	$this->assign('page',$page->show());
+        $this->assign('pager',$page);
+    	$this->assign('lists',$lists);
+    	return $this->fetch();
+    }
+    
+    public function level(){
+    	$act = I('get.act','add');
+    	$this->assign('act',$act);
+    	$level_id = I('get.level_id');
+    	if($level_id){
+    		$level_info = D('user_level')->where('level_id='.$level_id)->find();
+    		$this->assign('info',$level_info);
+    	}
+    	return $this->fetch();
+    }
+    
+    public function levelList(){
+    	$Ad =  M('user_level');
+        $p = $this->request->param('p');
+    	$res = $Ad->order('level_id')->page($p.',10')->select();
+    	if($res){
+    		foreach ($res as $val){
+    			$list[] = $val;
+    		}
+    	}
+    	$this->assign('list',$list);
+    	$count = $Ad->count();
+    	$Page = new Page($count,10);
+    	$show = $Page->show();
+    	$this->assign('page',$show);
+    	return $this->fetch();
+    }
+
+    /**
+     * 会员等级添加编辑删除
+     */
+    public function levelHandle()
+    {
+        $data = I('post.');
+        $userLevelValidate = Loader::validate('UserLevel');
+        $return = ['status' => 0, 'msg' => '参数错误', 'result' => ''];//初始化返回信息
+        if ($data['act'] == 'add') {
+            if (!$userLevelValidate->batch()->check($data)) {
+                $return = ['status' => 0, 'msg' => '添加失败', 'result' => $userLevelValidate->getError()];
+            } else {
+                $r = D('user_level')->add($data);
+                if ($r !== false) {
+                    $return = ['status' => 1, 'msg' => '添加成功', 'result' => $userLevelValidate->getError()];
+                } else {
+                    $return = ['status' => 0, 'msg' => '添加失败，数据库未响应', 'result' => ''];
+                }
+            }
+        }
+        if ($data['act'] == 'edit') {
+            if (!$userLevelValidate->scene('edit')->batch()->check($data)) {
+                $return = ['status' => 0, 'msg' => '编辑失败', 'result' => $userLevelValidate->getError()];
+            } else {
+                $r = D('user_level')->where('level_id=' . $data['level_id'])->save($data);
+                if ($r !== false) {
+                    $return = ['status' => 1, 'msg' => '编辑成功', 'result' => $userLevelValidate->getError()];
+                } else {
+                    $return = ['status' => 0, 'msg' => '编辑失败，数据库未响应', 'result' => ''];
+                }
+            }
+        }
+        if ($data['act'] == 'del') {
+            $r = D('user_level')->where('level_id=' . $data['level_id'])->delete();
+            if ($r !== false) {
+                $return = ['status' => 1, 'msg' => '删除成功', 'result' => ''];
+            } else {
+                $return = ['status' => 0, 'msg' => '删除失败，数据库未响应', 'result' => ''];
+            }
+        }
+        $this->ajaxReturn($return);
+    }
+
+    /**
+     * 搜索用户名
+     */
+    public function search_user()
+    {
+        $search_key = trim(I('search_key'));        
+        if(strstr($search_key,'@'))    
+        {
+            $list = M('users')->where(" email like '%$search_key%' ")->select();        
+            foreach($list as $key => $val)
+            {
+                echo "<option value='{$val['user_id']}'>{$val['email']}</option>";
+            }                        
+        }
+        else
+        {
+            $list = M('users')->where(" mobile like '%$search_key%' ")->select();        
+            foreach($list as $key => $val)
+            {
+                echo "<option value='{$val['user_id']}'>{$val['mobile']}</option>";
+            }            
+        } 
+        exit;
+    }
+    
+    /**
+     * 分销树状关系
+     */
+    public function ajax_distribut_tree()
+    {
+          $list = M('users')->where("first_leader = 1")->select();
+          return $this->fetch();
+    }
+
+    /**
+     *
+     * @time 2016/08/31
+     * @author dyr
+     * 发送站内信
+     */
+    public function sendMessage()
+    {
+        $user_id_array = I('get.user_id_array');
+        $users = array();
+        if (!empty($user_id_array)) {
+            $users = M('users')->field('user_id,nickname')->where(array('user_id' => array('IN', $user_id_array)))->select();
+        }
+        $this->assign('users',$users);
+        return $this->fetch();
+    }
+
+    /**
+     * 发送系统消息
+     * @author dyr
+     * @time  2016/09/01
+     */
+    public function doSendMessage()
+    {
+        $call_back = I('call_back');//回调方法
+        $text= I('post.text');//内容
+        $type = I('post.type', 0);//个体or全体
+        $admin_id = session('admin_id');
+        $users = I('post.user/a');//个体id
+        $message = array(
+            'admin_id' => $admin_id,
+            'message' => $text,
+            'category' => 0,
+            'send_time' => time()
+        );
+
+        if ($type == 1) {
+            //全体用户系统消息
+            $message['type'] = 1;
+            M('Message')->add($message);
+        } else {
+            //个体消息
+            $message['type'] = 0;
+            if (!empty($users)) {
+                $create_message_id = M('Message')->add($message);
+                foreach ($users as $key) {
+                    M('user_message')->add(array('user_id' => $key, 'message_id' => $create_message_id, 'status' => 0, 'category' => 0));
+                }
+            }
+        }
+        echo "<script>parent.{$call_back}(1);</script>";
+        exit();
+    }
+
+    /**
+     *
+     * @time 2016/09/03
+     * @author dyr
+     * 发送邮件
+     */
+    public function sendMail()
+    {
+        $user_id_array = I('get.user_id_array');
+        $users = array();
+        if (!empty($user_id_array)) {
+            $user_where = array(
+                'user_id' => array('IN', $user_id_array),
+                'email' => array('neq', '')
+            );
+            $users = M('users')->field('user_id,nickname,email')->where($user_where)->select();
+        }
+        $this->assign('smtp', tpCache('smtp'));
+        $this->assign('users', $users);
+        return $this->fetch();
+    }
+
+    /**
+     * 发送邮箱
+     * @author dyr
+     * @time  2016/09/03
+     */
+    public function doSendMail()
+    {
+        $call_back = I('call_back');//回调方法
+        $message = I('post.text');//内容
+        $title = I('post.title');//标题
+        $users = I('post.user/a');
+        $email= I('post.email');
+        if (!empty($users)) {
+            $user_id_array = implode(',', $users);
+            $users = M('users')->field('email')->where(array('user_id' => array('IN', $user_id_array)))->select();
+            $to = array();
+            foreach ($users as $user) {
+                if (check_email($user['email'])) {
+                    $to[] = $user['email'];
+                }
+            }
+            $res = send_email($to, $title, $message);
+            echo "<script>parent.{$call_back}({$res['status']});</script>";
+            exit();
+        }
+        if($email){
+            $res = send_email($email, $title, $message);
+            echo "<script>parent.{$call_back}({$res['status']});</script>";
+            exit();
+        }
+    }
+
+    /**
+     * 提现申请记录
+     */
+    public function withdrawals()
+    {
+        $model = M("withdrawals");
+        $_GET = array_merge($_GET,$_POST);
+        unset($_GET['create_time']);
+
+        $status = I('status');
+        $user_id = I('user_id');
+        $account_bank = I('account_bank');
+        $account_name = I('account_name');
+        $create_time = I('create_time');
+        $create_time = $create_time  ? $create_time  : date('Y/m/d',strtotime('-1 year')).'-'.date('Y/m/d',strtotime('+1 day'));
+        $create_time2 = explode('-',$create_time);
+        $this->assign('start_time', $create_time2[0]);
+        $this->assign('end_time', $create_time2[1]);
+        $where = " create_time >= '".strtotime($create_time2[0])."' and create_time <= '".strtotime($create_time2[1])."' ";
+
+        if($status === '0' || $status > 0)
+            $where .= " and status = $status ";
+        $user_id && $where .= " and user_id = $user_id ";
+        $account_bank && $where .= " and account_bank like '%$account_bank%' ";
+        $account_name && $where .= " and account_name like '%$account_name%' ";
+
+        $count = $model->where($where)->count();
+        $Page  = new Page($count,10);
+        $list = $model->where($where)->order("`id` desc")->limit($Page->firstRow.','.$Page->listRows)->select();
+
+        $this->assign('create_time',$create_time);
+        $show  = $Page->show();
+        $this->assign('show',$show);
+        $this->assign('pager',$Page);
+        $this->assign('list',$list);
+        C('TOKEN_ON',false);
+        return $this->fetch();
+    }
+    
+    public function export_withdrawals()
+    {
+        // $user_id = I('user_id');// 用户ID
+        // $account_bank = I('account_bank');//收款账号
+        // $account_name = I('account_name');//收款账户
+        // $status = I('status');//状态
+       
+        // if($user_id){ 
+        //     $where['user_id'] = ['in', $user_id];
+        // }
+        // if($account_bank){
+        //     $where['account_bank'] = $account_bank;
+        // }
+        // if($account_name){
+        //     $where['account_name'] = $account_name;
+        // }
+        // if($status){
+        //     $where['status'] = $status;
+        // }
+        
+
+
+
+      $orderList = Db::name('withdrawals')->field("*,FROM_UNIXTIME(create_time, '%Y/%m/%d %H:%i:%s')  as create_time ")->where($where)->order('id')->select();
+    	$strTable ='<table width="500" border="1">';
+    	$strTable .= '<tr>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;width:120px;">申请ID</td>';
+        $strTable .= '<td style="text-align:center;font-size:12px;width:120px;">用户ID</td>'; //lishibo
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="120px">申请时间</td>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="*">申请金额</td>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="*">手续费</td>';
+        $strTable .= '<td style="text-align:center;font-size:12px;" width="*">打款金额</td>';
+        $strTable .= '<td style="text-align:center;font-size:12px;" width="*">银行名称</td>';
+        $strTable .= '<td style="text-align:center;font-size:12px;" width="*">银行账号</td>';
+        $strTable .= '<td style="text-align:center;font-size:12px;" width="*">银行账户</td>';
+    	$strTable .= '<td style="text-align:center;font-size:12px;" width="*">状态</td>';
+    	$strTable .= '</tr>';
+	    if(is_array($orderList)){
+	    	$region	= get_region_list();
+	    	foreach($orderList as $k=>$val){
+	    		$strTable .= '<tr>';
+                    $strTable .= '<td style="text-align:center;font-size:12px;">&nbsp;'.$val['id'].'</td>';
+                    $strTable .= '<td style="text-align:center;font-size:12px;">&nbsp;'.$val['user_id'].'</td>';
+                    $strTable .= '<td style="text-align:left;font-size:12px;">'.$val['create_time'].' </td>';	    		
+                    $strTable .= '<td style="text-align:left;font-size:12px;">'.$val['money'].'</td>';
+
+                    $strTable .= '<td style="text-align:left;font-size:12px;">'.$val['sxf'].'</td>';
+                    $strTable .= '<td style="text-align:left;font-size:12px;">'.$val['ydkje'].'</td>';
+                    $strTable .= '<td style="text-align:left;font-size:12px;">'.$val['bank_name'].'</td>';
+					$val['account_bank'] = "'".$val['account_bank'];
+                    $strTable .= '<td style="text-align:left;font-size:12px;">'.$val['account_bank'] .'</td>';
+                    $strTable .= '<td style="text-align:left;font-size:12px;">'.$val['account_name'].'</td>';
+                    // $strTable .= '<td style="text-align:left;font-size:12px;">'.$val['status'].'</td>';
+                    if($val['status'] == 0 ){
+                        $strTable .= '<td style="text-align:left;font-size:12px;">'.'申请中'.'</td>';
+                    }else if($val['status'] == 1){
+                        $strTable .= '<td style="text-align:left;font-size:12px;">'.'申请成功'.'</td>';
+                    }else{
+                        $strTable .= '<td style="text-align:left;font-size:12px;">'.'申请失败'.'</td>';
+                    }
+                 $strTable .= '</tr>';
+	    	}
+	    }
+    	$strTable .='</table>';
+    	unset($orderList);
+    	downloadExcel($strTable,'withdrawals');
+    	exit();
+    }
+   
+    /**
+     * 删除申请记录
+     */
+    public function delWithdrawals()
+    {
+        $model = M("withdrawals");
+        $model->where('id ='.$_GET['id'])->delete();
+        $return_arr = array('status' => 1,'msg' => '操作成功','data'  =>'',);   //$return_arr = array('status' => -1,'msg' => '删除失败','data'  =>'',);
+        $this->ajaxReturn($return_arr);
+    }
+
+    /**
+     * 修改编辑 申请提现
+     */
+    public function editWithdrawals()
+    {
+        $id = I('id');
+        $withdrawals = DB::name('withdrawals')->where('id',$id)->find();
+        $user = M('users')->where("user_id = {$withdrawals[user_id]}")->find();
+        if (IS_POST) {
+            $data = I('post.');
+            // 如果是已经给用户转账 则生成转账流水记录
+          
+				
+				if ($data['leixing'] == 1) {
+				    
+					
+//					  if ($data['status'] == 1 && $withdrawals['status'] != 1) {
+//						accountLog($withdrawals['user_id'], ($withdrawals['money'] * -1), 0, "提现(打款到零钱)");
+//					  }
+					  //$data['money'] =  0.00;
+					  $data['status'] =  0;
+					
+					$remittance = array(
+                    'user_id' => $withdrawals['user_id'],
+                    'bank_name' => $withdrawals['bank_name'],
+                    'account_bank' => $withdrawals['account_bank'],
+                    'account_name' => $withdrawals['account_name'],
+                    'money' => $withdrawals['money'],
+                    'status' => 0,
+                    'create_time' => time(),
+                    'admin_id' => session('admin_id'),
+                    'withdrawals_id' => $withdrawals['id'],
+                    'remark' => $data['remark'],
+					'leixing' => 1
+                     );
+				
+				} else {
+					
+					if ($user['user_money'] < $withdrawals['money']) {
+						$this->error("可用余额不足{$withdrawals['money']}，不够提现");
+						exit;
+					}
+					
+					if ($data['status'] == 1 && $withdrawals['status'] != 1) {
+						accountLog($withdrawals['user_id'], ($withdrawals['money'] * -1), 0, "平台提现");
+					}
+					$remittance = array(
+                    'user_id' => $withdrawals['user_id'],
+                    'bank_name' => $withdrawals['bank_name'],
+                    'account_bank' => $withdrawals['account_bank'],
+                    'account_name' => $withdrawals['account_name'],
+                    'money' => $withdrawals['money'],
+                    'status' => 1,
+                    'create_time' => time(),
+                    'admin_id' => session('admin_id'),
+                    'withdrawals_id' => $withdrawals['id'],
+                    'remark' => $data['remark'],
+					'leixing' => 0
+                     );
+					 
+					 $data['status'] =  1;
+						
+				}
+				
+				$count =  M('remittance')->where("withdrawals_id = {$id}")->count();
+                if ( (int)$count == 0 ) {
+                	M('remittance')->add($remittance);
+				}
+            
+            DB::name('withdrawals')->update($data);
+			
+			if ($data['leixing'] == 1) {
+				echo"<script>window.location.href='http://yinjiushu.tuohuang360.com/mymymy/qyfkdlq.php?id=".$id."'; </script>";  
+			     /*$this->success("操作成功!", 'http://yinjiushu.tuohuang360.com/mymymy/qyfkdlq.php?id='.$id, 0);*/
+			} else {
+			     $this->success("操作成功!", U('Admin/User/remittance'), 3);
+			}
+			
+			
+            exit;
+        }
+
+        if ($user['nickname'])
+            $withdrawals['user_name'] = $user['nickname'];
+        elseif ($user['email'])
+            $withdrawals['user_name'] = $user['email'];
+        elseif ($user['mobile'])
+            $withdrawals['user_name'] = $user['mobile'];
+        $this->assign('user', $user);
+        $this->assign('data', $withdrawals);
+        return $this->fetch();
+    }
+
+    public function withdrawals_update(){
+        $id = I('id/a');
+        $status = I('status');
+        $withdrawals = M('withdrawals')->where('id','in', $id)->select();
+        if($status == 1){
+            $r = M('withdrawals')->where('id','in', $id)->save(array('status'=>$status,'check_time'=>time()));
+        }else if($status == -1){
+            $r = M('withdrawals')->where('id','in', $id)->save(array('status'=>$status,'refuse_time'=>time()));
+        }else if($status == 2){
+            foreach($withdrawals as $val){
+                $user = M('users')->where(array('user_id'=>$val['user_id']))->find();
+                if($user['user_money'] < $val['money'])
+                {
+                    $data['status'] = -2;
+                    $data['remark'] = '可用余额不足';
+                    M('withdrawals')->where(array('id'=>$val['id']))->save($data);
+                }else{
+                    if($val['bank_name'] == '支付宝 '){
+                        //流水号1^收款方账号1^收款账号姓名1^付款积分1^备注说明1|流水号2^收款方账号2^收款账号姓名2^付款积分2^备注说明2
+                        $alipay['batch_no'] = time();
+                        $alipay['batch_fee'] += $val['money'];
+                        $alipay['batch_num'] += 1;
+                        $str = isset($alipay['detail_data']) ? '|' : '';
+                        $alipay['detail_data'] .= $str.$val['pay_code'].'^'.$val['account_bank'].'^'.$val['realname'].'^'.$val['money'].'^'.$val['remark'];
+                    }
+                    if($val['bank_name'] == '微信'){
+                        $wxpay = array(
+                            'userid' => $val['user_id'],//用户ID做更新状态使用
+                            'openid' => $val['account_bank'],//收钱的人微信 OPENID
+                            'pay_code'=>$val['pay_code'],//提现申请ID
+                            'money' => $val['money'],//积分
+                            'desc' => '恭喜您提现申请成功!'
+                        );
+                        $res = $this->transfer('weixin',$wxpay);//微信在线付款转账
+                        if($res['partner_trade_no']){
+                            accountLog($val['user_id'], ($val['money'] * -1), 0,"平台处理用户提现申请");
+                            $r = M('withdrawals')->where(array('id'=>$val['id']))->save(array('status'=>$status,'pay_time'=>time()));
+                        }else{
+                            $this->ajaxReturn(array('status'=>0,'msg'=>$res['msg']),'JSON');
+                        }
+                    }
+                }
+            }
+            if(!empty($alipay)){
+                $this->transfer('alipay',$alipay);
+            }
+            $this->ajaxReturn(array('status'=>1,'msg'=>"操作成功"),'JSON');
+        }else if($status == 3){
+            $r = M('withdrawals')->where('id in ('.implode(',', $id).')')->delete();
+        }else{
+            accountLog($val['user_id'], ($val['money'] * -1), 0,"管理员处理用户提现申请");//手动转账，默认视为已通过线下转方式处理了该笔提现申请
+            $r = M('withdrawals')->where('id in ('.implode(',', $id).')')->save(array('status'=>2,'pay_time'=>time()));
+        }
+        if($r){
+            $this->ajaxReturn(array('status'=>1,'msg'=>"操作成功"),'JSON');
+        }else{
+            $this->ajaxReturn(array('status'=>0,'msg'=>"操作失败"),'JSON');
+        }
+
+    }
+
+    public function transfer($atype,$data){
+        if($atype == 'weixin'){
+            include_once  PLUGIN_PATH."payment/weixin/weixin.class.php";
+            $wxpay_obj = new \weixin();
+            return $wxpay_obj->transfer($data);
+        }else{
+            //支付宝在线批量付款
+            include_once  PLUGIN_PATH."payment/alipay/alipay.class.php";
+            $alipay_obj = new \alipay();
+            return $alipay_obj->transfer($data);
+        }
+    }
+    /**
+     *  转账汇款记录
+     */
+    public function remittance(){
+        $model = M("remittance");
+        $_GET = array_merge($_GET,$_POST);
+        unset($_GET['create_time']);
+
+        $user_id = I('user_id');
+        $account_bank = I('account_bank');
+        $account_name = I('account_name');
+
+        $create_time = I('create_time');
+        $create_time = $create_time  ? $create_time  : date('Y-m-d',strtotime('-1 year')).' - '.date('Y-m-d',strtotime('+1 day'));
+        $create_time2 = explode(' - ',$create_time);
+        $this->assign('start_time',$create_time2[0]);
+        $this->assign('end_time',$create_time2[1]);
+        $where = " create_time >= '".strtotime($create_time2[0])."' and create_time <= '".strtotime($create_time2[1])."' ";
+        $user_id && $where .= " and user_id = $user_id ";
+        $account_bank && $where .= " and account_bank like '%$account_bank%' ";
+        $account_name && $where .= " and account_name like '%$account_name%' ";
+
+        $count = $model->where($where)->count();
+        $Page  = new Page($count,16);
+        $list = $model->where($where)->order("`id` desc")->limit($Page->firstRow.','.$Page->listRows)->select();
+        $this->assign('pager',$Page);
+        $this->assign('create_time',$create_time);
+        $show  = $Page->show();
+        $this->assign('show',$show);
+        $this->assign('list',$list);
+        C('TOKEN_ON',false);
+        return $this->fetch();
+    }
+}
